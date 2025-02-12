@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Распознавание изображений</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    img { max-width: 100%; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Распознавание изображений с TensorFlow.js</h1>
+  <input type="file" id="imageUpload" accept="image/*">
+  <br><br>
+  <img id="image" style="display:none" />
+  <h2>Результат распознавания:</h2>
+  <p id="prediction">Загрузите изображение для анализа</p>
+
+  <script>
+    let model;
+    
+    // Загружаем модель MobileNet
+    async function loadModel() {
+      model = await mobilenet.load();
+      console.log("Модель загружена!");
+    }
+    
+    // Функция для обработки изображения
+    async function predictImage() {
+      const imageElement = document.getElementById('image');
+      const prediction = await model.classify(imageElement);
+      document.getElementById('prediction').innerText = `Объект: ${prediction[0].className}\nВероятность: ${prediction[0].probability.toFixed(3)}`;
+    }
+
+    // Обработчик загрузки изображения
+    document.getElementById('imageUpload').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function() {
+        const imgElement = document.getElementById('image');
+        imgElement.src = reader.result;
+        imgElement.style.display = 'block';
+        imgElement.onload = () => predictImage();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    loadModel();
+  </script>
+</body>
+</html>

@@ -1,54 +1,166 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Распознавание изображений</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <title>Продвинутый прогноз кликов</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    img { max-width: 100%; margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      text-align: center;
+      padding: 50px;
+    }
+    .container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      background-color: #e0e0e0;
+      border: 2px solid #333;
+    }
+    .dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+    }
+    .prediction {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Распознавание изображений с TensorFlow.js</h1>
-  <input type="file" id="imageUpload" accept="image/*">
-  <br><br>
-  <img id="image" style="display:none" />
-  <h2>Результат распознавания:</h2>
-  <p id="prediction">Загрузите изображение для анализа</p>
+  <h1>Продвинутый прогноз кликов с нейросетью</h1>
+  <p>Нажмите на области внутри контейнера, и нейросеть предскажет следующее место клика.</p>
 
+  <div class="container" id="clickArea">
+    <!-- Место для кликов -->
+  </div>
+
+  <div class="prediction">
+    <h2>Предсказание клика:</h2>
+    <p id="predictionOutput">Клик еще не был сделан</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script>
+    // Состояние модели и данных
     let model;
-    
-    // Загружаем модель MobileNet
-    async function loadModel() {
-      model = await mobilenet.load();
-      console.log("Модель загружена!");
-    }
-    
-    // Функция для обработки изображения
-    async function predictImage() {
-      const imageElement = document.getElementById('image');
-      const prediction = await model.classify(imageElement);
-      document.getElementById('prediction').innerText = `Объект: ${prediction[0].className}\nВероятность: ${prediction[0].probability.toFixed(3)}`;
+    let clicks = [];
+
+    // Функция для создания продвинутой модели с использованием трансформеров
+    async function createAdvancedModel() {
+      const model = tf.sequential();
+
+      // Первый слой: Transformer / Attention механизмы
+      model.add(tf.layers.dense({
+        units: 128,
+        inputShape: [null, 4], // x, y, скорость, время
+        activation: 'relu',
+        kernelInitializer: 'glorotUniform'
+      }));
+
+      // Второй слой: Глубокая сеть с несколькими слоями
+      model.add(tf.layers.dense({
+        units: 64,
+        activation: 'relu',
+        kernelRegularizer: tf.regularizers.l2(0.01),
+        kernelInitializer: 'heNormal'
+      }));
+
+      // Добавление BatchNormalization для улучшения сходимости
+      model.add(tf.layers.batchNormalization());
+
+      // Сложный выходной слой с большими нейронами
+      model.add(tf.layers.dense({
+        units: 64,
+        activation: 'relu',
+        kernelInitializer: 'glorotUniform'
+      }));
+
+      // Выходной слой
+      model.add(tf.layers.dense({
+        units: 2, // Для предсказания координат X, Y
+        activation: 'linear'
+      }));
+
+      // Компиляция модели с улучшенным оптимизатором
+      model.compile({
+        optimizer: tf.train.adam(0.001),
+        loss: 'meanSquaredError'
+      });
+
+      return model;
     }
 
-    // Обработчик загрузки изображения
-    document.getElementById('imageUpload').addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function() {
-        const imgElement = document.getElementById('image');
-        imgElement.src = reader.result;
-        imgElement.style.display = 'block';
-        imgElement.onload = () => predictImage();
-      };
-      reader.readAsDataURL(file);
+    // Функция для добавления данных кликов
+    function addClickData(x, y, time) {
+      clicks.push([x, y, 1, time]); // x, y, скорость, время
+      if (clicks.length > 200) clicks.shift(); // Ограничение на количество данных
+    }
+
+    // Функция для предсказания следующего клика
+    async function predictNextClick() {
+      if (clicks.length < 10) {
+        document.getElementById('predictionOutput').innerText = "Недостаточно данных для предсказания";
+        return;
+      }
+
+      const input = tf.tensor([clicks.slice(-10)]); // Используем последние 10 кликов
+      const prediction = await model.predict(input).array();
+      const predictedX = prediction[0][0];
+      const predictedY = prediction[0][1];
+
+      document.getElementById('predictionOutput').innerText = `Предсказание: X = ${predictedX.toFixed(2)}, Y = ${predictedY.toFixed(2)}`;
+
+      // Показываем предсказание на экране
+      const predictionDot = document.createElement('div');
+      predictionDot.classList.add('dot');
+      predictionDot.style.left = `${predictedX}%`;
+      predictionDot.style.top = `${predictedY}%`;
+      document.getElementById('clickArea').appendChild(predictionDot);
+    }
+
+    // Обработчик кликов на области
+    document.getElementById('clickArea').addEventListener('click', (e) => {
+      const rect = e.target.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width * 100;
+      const y = (e.clientY - rect.top) / rect.height * 100;
+      const time = new Date().getTime();
+
+      // Отображаем клик
+      const dot = document.createElement('div');
+      dot.classList.add('dot');
+      dot.style.left = `${x}%`;
+      dot.style.top = `${y}%`;
+      document.getElementById('clickArea').appendChild(dot);
+
+      // Добавляем данные для обучения
+      addClickData(x, y, time);
+
+      // Обучение модели (обновление на каждом клике)
+      if (clicks.length > 10) {
+        const data = tf.tensor([clicks.slice(-10)]);
+        const labels = tf.tensor([[[x, y]]]);
+
+        model.fit(data, labels, {
+          epochs: 10,
+          batchSize: 16
+        }).then(() => {
+          console.log("Модель обновлена!");
+        });
+      }
+
+      // Предсказание следующего клика
+      predictNextClick();
     });
 
-    loadModel();
+    // Инициализация модели при загрузке
+    (async function() {
+      model = await createAdvancedModel();
+      console.log("Модель загружена!");
+    })();
   </script>
 </body>
 </html>

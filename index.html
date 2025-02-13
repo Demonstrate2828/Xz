@@ -3,158 +3,178 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Гениальное предсказание кликов</title>
+  <title>Динамическое Генерация Сайта</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f3f4f6;
+      font-family: 'Arial', sans-serif;
       text-align: center;
       padding: 50px;
+      margin: 0;
+      transition: all 1s ease;
     }
+
     .container {
-      position: relative;
-      width: 100%;
-      height: 500px;
-      background-color: #e0e0e0;
-      border: 2px solid #333;
+      width: 80%;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      border-radius: 15px;
+      transition: all 0.5s ease;
     }
-    .dot {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background-color: red;
-      border-radius: 50%;
-    }
-    .prediction {
+
+    #chatBox {
+      width: 60%;
+      height: 30px;
       margin-top: 20px;
+    }
+
+    .chatMessages {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      transition: all 0.3s ease;
+    }
+
+    .chatMessage, .chatBotMessage {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .chatBotMessage {
+      background-color: #a0e0a0;
+    }
+
+    .chatMessage {
+      background-color: #e1e1e1;
+    }
+
+    .dynamic-content {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 10px;
+      background-color: #f5f5f5;
+      animation: fadeIn 2s ease-in-out;
+    }
+
+    .dynamic-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <h1>Гениальное предсказание кликов с нейросетью</h1>
-  <p>Нажмите на области внутри контейнера, и нейросеть предскажет следующее место клика.</p>
+  <h1>Динамическое Генерация Сайта</h1>
+  <p>Введите запрос в чат, чтобы сайт адаптировался под эту тему:</p>
 
-  <div class="container" id="clickArea"></div>
+  <input type="text" id="chatBox" placeholder="Например, 'бананы', 'война', 'космос'">
+  <button id="sendRequest">Отправить запрос</button>
 
-  <div class="prediction">
-    <h2>Предсказание клика:</h2>
-    <p id="predictionOutput">Клик еще не был сделан</p>
+  <div class="chatMessages" id="chatMessages"></div>
+
+  <div class="container" id="containerElement">
+    <h2>Основной контент сайта</h2>
+    <p>Этот сайт будет менять свой стиль и контент в зависимости от вашего запроса.</p>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <div class="dynamic-content" id="dynamicContent"></div>
+
   <script>
-    // Модель и переменные
-    let model;
-    let clicks = [];
-    let nextPrediction = [0, 0]; // Начальное предсказание для первых кликов
-    let trainingInProgress = false; // Флаг для предотвращения частого обучения
+    // Функция для генерации контента и стилей в зависимости от запроса
+    function generateDynamicContent(query) {
+      const dynamicContent = document.getElementById('dynamicContent');
+      const container = document.getElementById('containerElement');
+      const body = document.body;
 
-    // Функция для создания модели с глубокой LSTM
-    async function createAdvancedModel() {
-      const model = tf.sequential();
+      dynamicContent.innerHTML = ''; // Очистить старый контент
 
-      // Сложная архитектура LSTM
-      model.add(tf.layers.lstm({
-        units: 128,
-        inputShape: [10, 6], // Используем данные о X, Y, скорости и времени
-        activation: 'tanh',
-        returnSequences: true
-      }));
-
-      model.add(tf.layers.lstm({
-        units: 64,
-        activation: 'tanh',
-        returnSequences: false
-      }));
-
-      model.add(tf.layers.dense({
-        units: 2, // Выход: предсказание X и Y
-        activation: 'linear'
-      }));
-
-      model.compile({
-        optimizer: tf.train.adam(0.001),
-        loss: 'meanSquaredError'
-      });
-
-      return model;
-    }
-
-    // Функция для добавления данных кликов (с учетом скорости)
-    function addClickData(x, y, speed, time) {
-      clicks.push([x, y, speed, time]); // x, y, скорость, время
-      if (clicks.length > 200) clicks.shift(); // Ограничиваем количество данных
-    }
-
-    // Функция для предсказания следующего клика
-    async function predictNextClick() {
-      if (clicks.length < 10) {
-        document.getElementById('predictionOutput').innerText = "Недостаточно данных для предсказания";
-        return;
+      // Включаем плавные переходы и добавляем новые элементы
+      if (query.includes("бананы")) {
+        body.style.backgroundColor = '#ffe135'; // Желтый фон
+        container.style.backgroundColor = '#f4c342'; // Банановый
+        dynamicContent.innerHTML = `
+          <h2>Все о бананах!</h2>
+          <p>Бананы - это не только вкусно, но и полезно!</p>
+          <img src="https://www.banana-image.com/banana.jpg" alt="Банан" />
+          <video width="400" controls>
+            <source src="https://www.banana-video.com/banana.mp4" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+          </video>
+        `;
+      } else if (query.includes("война")) {
+        body.style.backgroundColor = '#2f2f2f'; // Темный фон
+        container.style.backgroundColor = '#d9534f'; // Красный
+        dynamicContent.innerHTML = `
+          <h2>Тема войны</h2>
+          <p>Готовьтесь к битвам! Война на пороге...</p>
+          <img src="https://www.war-image.com/war.jpg" alt="Война" />
+          <video width="400" controls>
+            <source src="https://www.war-video.com/war.mp4" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+          </video>
+        `;
+      } else if (query.includes("космос")) {
+        body.style.backgroundColor = '#001f3d'; // Космический фон
+        container.style.backgroundColor = '#002b56'; // Темно-синий
+        dynamicContent.innerHTML = `
+          <h2>Загадки космоса</h2>
+          <p>Полет в космос открывает новые горизонты!</p>
+          <img src="https://www.space-image.com/space.jpg" alt="Космос" />
+          <iframe width="400" height="225" src="https://www.youtube.com/embed/space-video" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        `;
+      } else {
+        body.style.backgroundColor = '#f0f0f0';
+        container.style.backgroundColor = '#ffffff';
+        dynamicContent.innerHTML = `
+          <h2>Основной контент</h2>
+          <p>Этот сайт адаптируется в зависимости от вашего запроса!</p>
+        `;
       }
 
-      // Предсказание на основе последних кликов
-      const input = tf.tensor([clicks.slice(-10)]); // Используем последние 10 кликов
-      const prediction = await model.predict(input).array();
-      nextPrediction = prediction[0];
-
-      document.getElementById('predictionOutput').innerText = `Предсказание: X = ${nextPrediction[0].toFixed(2)}, Y = ${nextPrediction[1].toFixed(2)}`;
-      
-      // Отображаем предсказание на экране с зеленой точкой
-      const predictionDot = document.createElement('div');
-      predictionDot.classList.add('dot');
-      predictionDot.style.backgroundColor = 'green';  // Меняем цвет на зеленый
-      predictionDot.style.left = `${nextPrediction[0]}%`;
-      predictionDot.style.top = `${nextPrediction[1]}%`;
-      document.getElementById('clickArea').appendChild(predictionDot);
+      // Использование AI для генерации более сложного контента (например, OpenAI API)
+      if (query.toLowerCase().includes("искусственный интеллект")) {
+        const aiGeneratedContent = `
+          <h2>Искусственный интеллект</h2>
+          <p>AI - это технология, которая имитирует человеческие интеллектуальные процессы с помощью алгоритмов и вычислений.</p>
+          <img src="https://www.ai-image.com/ai.jpg" alt="Искусственный интеллект" />
+          <p>Вот как AI может преобразовать наш мир!</p>
+        `;
+        dynamicContent.innerHTML = aiGeneratedContent;
+      }
     }
 
-    // Обработчик кликов
-    document.getElementById('clickArea').addEventListener('click', (e) => {
-      const rect = e.target.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width * 100;
-      const y = (e.clientY - rect.top) / rect.height * 100;
-      const time = new Date().getTime();
+    // Отправка запроса в чат
+    document.getElementById('sendRequest').addEventListener('click', () => {
+      const userRequest = document.getElementById('chatBox').value;
+      const chatMessages = document.getElementById('chatMessages');
 
-      // Считывание скорости движения мыши (опционально)
-      const lastClick = clicks[clicks.length - 1];
-      const speed = lastClick ? Math.sqrt(Math.pow(x - lastClick[0], 2) + Math.pow(y - lastClick[1], 2)) : 0;
+      // Отображение сообщения пользователя в чате
+      const userMessage = document.createElement('div');
+      userMessage.classList.add('chatMessage');
+      userMessage.textContent = "Вы: " + userRequest;
+      chatMessages.appendChild(userMessage);
 
-      // Отображаем клик
-      const dot = document.createElement('div');
-      dot.classList.add('dot');
-      dot.style.left = `${x}%`;
-      dot.style.top = `${y}%`;
-      document.getElementById('clickArea').appendChild(dot);
+      // Ответ от чат-бота (обработка запроса)
+      const botMessage = document.createElement('div');
+      botMessage.classList.add('chatBotMessage');
+      botMessage.textContent = "Чат-бот: Обрабатываю запрос...";
 
-      // Добавляем данные для обучения
-      addClickData(x, y, speed, time);
+      chatMessages.appendChild(botMessage);
+      chatMessages.scrollTop = chatMessages.scrollHeight; // Прокрутка вниз
 
-      // Обучаем модель в реальном времени (не чаще 1 раза в 5 секунд)
-      if (!trainingInProgress && clicks.length > 10) {
-        trainingInProgress = true;
-        const data = tf.tensor([clicks.slice(-10)]);
-        const labels = tf.tensor([[[x, y]]]);
-
-        model.fit(data, labels, {
-          epochs: 1,
-          batchSize: 1,
-          shuffle: true
-        }).then(() => {
-          console.log("Модель обновлена!");
-          trainingInProgress = false;
-        });
-      }
-
-      // Обновляем предсказание
-      predictNextClick();
+      // Генерация контента
+      setTimeout(() => {
+        generateDynamicContent(userRequest);
+        botMessage.textContent = "Чат-бот: Контент изменен!";
+      }, 1000); // Задержка для имитации обработки
     });
-
-    // Инициализация модели
-    (async function() {
-      model = await createAdvancedModel();
-      console.log("Модель загружена!");
-    })();
   </script>
 </body>
 </html>

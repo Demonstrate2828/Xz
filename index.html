@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Продвинутый прогноз кликов</title>
+  <title>Гениальное предсказание кликов</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -31,12 +31,10 @@
   </style>
 </head>
 <body>
-  <h1>Продвинутый прогноз кликов с нейросетью</h1>
+  <h1>Гениальное предсказание кликов с нейросетью</h1>
   <p>Нажмите на области внутри контейнера, и нейросеть предскажет следующее место клика.</p>
 
-  <div class="container" id="clickArea">
-    <!-- Место для кликов -->
-  </div>
+  <div class="container" id="clickArea"></div>
 
   <div class="prediction">
     <h2>Предсказание клика:</h2>
@@ -45,47 +43,34 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script>
-    // Состояние модели и данных
+    // Модель и переменные
     let model;
     let clicks = [];
+    let nextPrediction = [0, 0]; // Начальное предсказание для первых кликов
 
-    // Функция для создания продвинутой модели с использованием трансформеров
+    // Функция для создания модели с глубокой LSTM
     async function createAdvancedModel() {
       const model = tf.sequential();
 
-      // Первый слой: Transformer / Attention механизмы
-      model.add(tf.layers.dense({
+      // Сложная архитектура LSTM
+      model.add(tf.layers.lstm({
         units: 128,
-        inputShape: [null, 4], // x, y, скорость, время
-        activation: 'relu',
-        kernelInitializer: 'glorotUniform'
+        inputShape: [10, 6], // Используем данные о X, Y, скорости и времени
+        activation: 'tanh',
+        returnSequences: true
       }));
 
-      // Второй слой: Глубокая сеть с несколькими слоями
-      model.add(tf.layers.dense({
+      model.add(tf.layers.lstm({
         units: 64,
-        activation: 'relu',
-        kernelRegularizer: tf.regularizers.l2(0.01),
-        kernelInitializer: 'heNormal'
+        activation: 'tanh',
+        returnSequences: false
       }));
 
-      // Добавление BatchNormalization для улучшения сходимости
-      model.add(tf.layers.batchNormalization());
-
-      // Сложный выходной слой с большими нейронами
       model.add(tf.layers.dense({
-        units: 64,
-        activation: 'relu',
-        kernelInitializer: 'glorotUniform'
-      }));
-
-      // Выходной слой
-      model.add(tf.layers.dense({
-        units: 2, // Для предсказания координат X, Y
+        units: 2, // Выход: предсказание X и Y
         activation: 'linear'
       }));
 
-      // Компиляция модели с улучшенным оптимизатором
       model.compile({
         optimizer: tf.train.adam(0.001),
         loss: 'meanSquaredError'
@@ -94,10 +79,10 @@
       return model;
     }
 
-    // Функция для добавления данных кликов
-    function addClickData(x, y, time) {
-      clicks.push([x, y, 1, time]); // x, y, скорость, время
-      if (clicks.length > 200) clicks.shift(); // Ограничение на количество данных
+    // Функция для добавления данных кликов (с учетом скорости)
+    function addClickData(x, y, speed, time) {
+      clicks.push([x, y, speed, time]); // x, y, скорость, время
+      if (clicks.length > 200) clicks.shift(); // Ограничиваем количество данных
     }
 
     // Функция для предсказания следующего клика
@@ -107,27 +92,31 @@
         return;
       }
 
+      // Предсказание на основе последних кликов
       const input = tf.tensor([clicks.slice(-10)]); // Используем последние 10 кликов
       const prediction = await model.predict(input).array();
-      const predictedX = prediction[0][0];
-      const predictedY = prediction[0][1];
+      nextPrediction = prediction[0];
 
-      document.getElementById('predictionOutput').innerText = `Предсказание: X = ${predictedX.toFixed(2)}, Y = ${predictedY.toFixed(2)}`;
-
-      // Показываем предсказание на экране
+      document.getElementById('predictionOutput').innerText = `Предсказание: X = ${nextPrediction[0].toFixed(2)}, Y = ${nextPrediction[1].toFixed(2)}`;
+      
+      // Отображаем предсказание на экране
       const predictionDot = document.createElement('div');
       predictionDot.classList.add('dot');
-      predictionDot.style.left = `${predictedX}%`;
-      predictionDot.style.top = `${predictedY}%`;
+      predictionDot.style.left = `${nextPrediction[0]}%`;
+      predictionDot.style.top = `${nextPrediction[1]}%`;
       document.getElementById('clickArea').appendChild(predictionDot);
     }
 
-    // Обработчик кликов на области
+    // Обработчик кликов
     document.getElementById('clickArea').addEventListener('click', (e) => {
       const rect = e.target.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width * 100;
       const y = (e.clientY - rect.top) / rect.height * 100;
       const time = new Date().getTime();
+
+      // Считывание скорости движения мыши (опционально)
+      const lastClick = clicks[clicks.length - 1];
+      const speed = lastClick ? Math.sqrt(Math.pow(x - lastClick[0], 2) + Math.pow(y - lastClick[1], 2)) : 0;
 
       // Отображаем клик
       const dot = document.createElement('div');
@@ -137,26 +126,27 @@
       document.getElementById('clickArea').appendChild(dot);
 
       // Добавляем данные для обучения
-      addClickData(x, y, time);
+      addClickData(x, y, speed, time);
 
-      // Обучение модели (обновление на каждом клике)
+      // Обучаем модель в реальном времени
       if (clicks.length > 10) {
         const data = tf.tensor([clicks.slice(-10)]);
         const labels = tf.tensor([[[x, y]]]);
 
         model.fit(data, labels, {
-          epochs: 10,
-          batchSize: 16
+          epochs: 1,
+          batchSize: 1,
+          shuffle: true
         }).then(() => {
           console.log("Модель обновлена!");
         });
       }
 
-      // Предсказание следующего клика
+      // Обновляем предсказание
       predictNextClick();
     });
 
-    // Инициализация модели при загрузке
+    // Инициализация модели
     (async function() {
       model = await createAdvancedModel();
       console.log("Модель загружена!");

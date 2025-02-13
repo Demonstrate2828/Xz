@@ -47,6 +47,7 @@
     let model;
     let clicks = [];
     let nextPrediction = [0, 0]; // Начальное предсказание для первых кликов
+    let trainingInProgress = false; // Флаг для предотвращения частого обучения
 
     // Функция для создания модели с глубокой LSTM
     async function createAdvancedModel() {
@@ -99,9 +100,10 @@
 
       document.getElementById('predictionOutput').innerText = `Предсказание: X = ${nextPrediction[0].toFixed(2)}, Y = ${nextPrediction[1].toFixed(2)}`;
       
-      // Отображаем предсказание на экране
+      // Отображаем предсказание на экране с зеленой точкой
       const predictionDot = document.createElement('div');
       predictionDot.classList.add('dot');
+      predictionDot.style.backgroundColor = 'green';  // Меняем цвет на зеленый
       predictionDot.style.left = `${nextPrediction[0]}%`;
       predictionDot.style.top = `${nextPrediction[1]}%`;
       document.getElementById('clickArea').appendChild(predictionDot);
@@ -128,8 +130,9 @@
       // Добавляем данные для обучения
       addClickData(x, y, speed, time);
 
-      // Обучаем модель в реальном времени
-      if (clicks.length > 10) {
+      // Обучаем модель в реальном времени (не чаще 1 раза в 5 секунд)
+      if (!trainingInProgress && clicks.length > 10) {
+        trainingInProgress = true;
         const data = tf.tensor([clicks.slice(-10)]);
         const labels = tf.tensor([[[x, y]]]);
 
@@ -139,6 +142,7 @@
           shuffle: true
         }).then(() => {
           console.log("Модель обновлена!");
+          trainingInProgress = false;
         });
       }
 

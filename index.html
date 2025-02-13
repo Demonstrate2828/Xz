@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Динамическое Генерация Сайта</title>
+  <title>Генерация Сайта с Нейросетью</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -68,10 +68,20 @@
       0% { opacity: 0; }
       100% { opacity: 1; }
     }
+
+    /* Добавляем анимации */
+    .fade-background {
+      animation: fadeBackground 2s ease-in-out;
+    }
+
+    @keyframes fadeBackground {
+      0% { background-color: transparent; }
+      100% { background-color: inherit; }
+    }
   </style>
 </head>
 <body>
-  <h1>Динамическое Генерация Сайта</h1>
+  <h1>Генерация Сайта с Нейросетью</h1>
   <p>Введите запрос в чат, чтобы сайт адаптировался под эту тему:</p>
 
   <input type="text" id="chatBox" placeholder="Например, 'бананы', 'война', 'космос'">
@@ -86,95 +96,108 @@
 
   <div class="dynamic-content" id="dynamicContent"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script>
-    // Функция для генерации контента и стилей в зависимости от запроса
-    function generateDynamicContent(query) {
+    // Модель для генерации текста
+    let model;
+
+    // Загрузка модели нейросети для генерации контента
+    async function loadModel() {
+      model = await tf.sequential();
+      model.add(tf.layers.dense({ units: 128, activation: 'relu', inputShape: [10] }));
+      model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+      model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
+      model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy', metrics: ['accuracy'] });
+
+      console.log('Модель загружена');
+    }
+
+    // Функция для генерации контента на основе запроса
+    function generateContent(query) {
       const dynamicContent = document.getElementById('dynamicContent');
       const container = document.getElementById('containerElement');
       const body = document.body;
 
-      dynamicContent.innerHTML = ''; // Очистить старый контент
+      dynamicContent.innerHTML = ''; // Очистка старого контента
 
-      // Включаем плавные переходы и добавляем новые элементы
-      if (query.includes("бананы")) {
-        body.style.backgroundColor = '#ffe135'; // Желтый фон
-        container.style.backgroundColor = '#f4c342'; // Банановый
-        dynamicContent.innerHTML = `
-          <h2>Все о бананах!</h2>
-          <p>Бананы - это не только вкусно, но и полезно!</p>
-          <img src="https://www.banana-image.com/banana.jpg" alt="Банан" />
-          <video width="400" controls>
-            <source src="https://www.banana-video.com/banana.mp4" type="video/mp4">
-            Ваш браузер не поддерживает видео.
-          </video>
-        `;
-      } else if (query.includes("война")) {
-        body.style.backgroundColor = '#2f2f2f'; // Темный фон
-        container.style.backgroundColor = '#d9534f'; // Красный
-        dynamicContent.innerHTML = `
-          <h2>Тема войны</h2>
-          <p>Готовьтесь к битвам! Война на пороге...</p>
-          <img src="https://www.war-image.com/war.jpg" alt="Война" />
-          <video width="400" controls>
-            <source src="https://www.war-video.com/war.mp4" type="video/mp4">
-            Ваш браузер не поддерживает видео.
-          </video>
-        `;
-      } else if (query.includes("космос")) {
-        body.style.backgroundColor = '#001f3d'; // Космический фон
-        container.style.backgroundColor = '#002b56'; // Темно-синий
-        dynamicContent.innerHTML = `
-          <h2>Загадки космоса</h2>
-          <p>Полет в космос открывает новые горизонты!</p>
-          <img src="https://www.space-image.com/space.jpg" alt="Космос" />
-          <iframe width="400" height="225" src="https://www.youtube.com/embed/space-video" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        `;
-      } else {
-        body.style.backgroundColor = '#f0f0f0';
-        container.style.backgroundColor = '#ffffff';
-        dynamicContent.innerHTML = `
-          <h2>Основной контент</h2>
-          <p>Этот сайт адаптируется в зависимости от вашего запроса!</p>
-        `;
-      }
+      // Динамическое изменение стилей и контента в зависимости от запроса
+      const inputData = processQuery(query);
+      const prediction = model.predict(inputData);
 
-      // Использование AI для генерации более сложного контента (например, OpenAI API)
-      if (query.toLowerCase().includes("искусственный интеллект")) {
-        const aiGeneratedContent = `
-          <h2>Искусственный интеллект</h2>
-          <p>AI - это технология, которая имитирует человеческие интеллектуальные процессы с помощью алгоритмов и вычислений.</p>
-          <img src="https://www.ai-image.com/ai.jpg" alt="Искусственный интеллект" />
-          <p>Вот как AI может преобразовать наш мир!</p>
-        `;
-        dynamicContent.innerHTML = aiGeneratedContent;
-      }
+      prediction.array().then(output => {
+        const result = output[0];
+        if (result[0] > 0.5) {
+          body.style.backgroundColor = '#ffe135'; // Желтый фон для "бананы"
+          body.classList.add('fade-background');
+          container.style.backgroundColor = '#f4c342';
+          dynamicContent.innerHTML = `
+            <h2>Все о бананах!</h2>
+            <p>Бананы - это не только вкусно, но и полезно!</p>
+            <img src="https://www.banana-image.com/banana.jpg" alt="Банан" />
+            <p>Добавьте бананы в свой рацион!</p>
+          `;
+        } else if (result[1] > 0.5) {
+          body.style.backgroundColor = '#2f2f2f'; // Темный фон для "война"
+          body.classList.add('fade-background');
+          container.style.backgroundColor = '#d9534f';
+          dynamicContent.innerHTML = `
+            <h2>Тема войны</h2>
+            <p>Готовьтесь к битвам! Война на пороге...</p>
+            <img src="https://www.war-image.com/war.jpg" alt="Война" />
+            <p>Эта тема раскрывает самые важные моменты.</p>
+          `;
+        } else {
+          body.style.backgroundColor = '#001f3d'; // Космический фон для "космос"
+          body.classList.add('fade-background');
+          container.style.backgroundColor = '#002b56';
+          dynamicContent.innerHTML = `
+            <h2>Загадки космоса</h2>
+            <p>Полет в космос открывает новые горизонты!</p>
+            <img src="https://www.space-image.com/space.jpg" alt="Космос" />
+            <p>Исследование вселенной – это путь к познанию!</p>
+          `;
+        }
+      });
     }
 
-    // Отправка запроса в чат
+    // Преобразование запроса в формат, подходящий для нейросети
+    function processQuery(query) {
+      const queryLower = query.toLowerCase();
+      const inputArray = [0, 0, 0]; // Вектор для классификации
+      if (queryLower.includes('банан')) inputArray[0] = 1;
+      else if (queryLower.includes('война')) inputArray[1] = 1;
+      else if (queryLower.includes('космос')) inputArray[2] = 1;
+      
+      return tf.tensor([inputArray]);
+    }
+
+    // Отправка запроса и обновление контента
     document.getElementById('sendRequest').addEventListener('click', () => {
       const userRequest = document.getElementById('chatBox').value;
       const chatMessages = document.getElementById('chatMessages');
 
-      // Отображение сообщения пользователя в чате
+      // Сообщение пользователя
       const userMessage = document.createElement('div');
       userMessage.classList.add('chatMessage');
       userMessage.textContent = "Вы: " + userRequest;
       chatMessages.appendChild(userMessage);
 
-      // Ответ от чат-бота (обработка запроса)
+      // Ответ бота
       const botMessage = document.createElement('div');
       botMessage.classList.add('chatBotMessage');
       botMessage.textContent = "Чат-бот: Обрабатываю запрос...";
-
       chatMessages.appendChild(botMessage);
-      chatMessages.scrollTop = chatMessages.scrollHeight; // Прокрутка вниз
+      chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      // Генерация контента
+      // Генерация контента и изменение сайта
       setTimeout(() => {
-        generateDynamicContent(userRequest);
+        generateContent(userRequest);
         botMessage.textContent = "Чат-бот: Контент изменен!";
       }, 1000); // Задержка для имитации обработки
     });
+
+    // Загрузка модели
+    loadModel();
   </script>
 </body>
 </html>
